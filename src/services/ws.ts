@@ -9,6 +9,8 @@ const wss = new WebSocketServer({ port: 9090 });
 
 interface WebsocketMessage {
 	type: string;
+	steamId?: string;
+	token?: string;
 	content?: string;
 	correlationId?: string;
 }
@@ -21,14 +23,16 @@ interface ResponseMessage extends WebsocketMessage {
 const messageHandlers: Record<string, (data: WebsocketMessage) => Promise<any>> = {
 	"getUser_steam": async (data) => {
 		try {
-			if (!data.content) {
+			if (!data.content || !data.steamId) {
 				return {
 					success: false,
 					content: `Malformed content received.`
 				};
 			}
 
-			const [steamId, username] = data.content.split(" ");
+			const steamId = data.steamId;
+			const username = data.content;
+
 			const account = await prisma.account.findUnique({
 				where: { platform_platformId: { platform: "STEAM", platformId: steamId } },
 				include: { user: true }
@@ -67,14 +71,16 @@ const messageHandlers: Record<string, (data: WebsocketMessage) => Promise<any>> 
 		}
 	},
 	"linkCode_steam": async (data) => {
-		if (!data.content) {
+		if (!data.content || !data.steamId) {
 			return {
 				success: false,
 				content: `Malformed content received.`
 			};
 		}
 
-		const [steamId, code] = data.content.split(" ");
+		const steamId = data.steamId;
+		const code = data.content;
+
 		let discordId = undefined;
 
 		discordId = CodeStorage.getUser(code);
@@ -140,7 +146,7 @@ const messageHandlers: Record<string, (data: WebsocketMessage) => Promise<any>> 
 	},
 	"giveXP": async (data) => {
 		try {
-			if (!data.content) {
+			if (!data.content || !data.steamId) {
 				return {
 					success: false,
 					content: `Malformed content received.`
@@ -170,12 +176,55 @@ const messageHandlers: Record<string, (data: WebsocketMessage) => Promise<any>> 
 	}
 };
 
+interface AuthValidationResponse {
+    steamId: number;
+    status: string;
+}
+
+async function authenticate(steamId: string, token: string): Promise<AuthValidationResponse | null> {
+    const content = {
+        steamId: steamId,
+        token: token
+    };
+
+    const response = await fetch('https://services.facepunch.com/sbox/auth/token', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(content)
+    });
+
+	if (!response.ok) {
+		console.log('HTTP response wasnt OK');
+		return null;
+	}
+
+	const authValidationResponse: AuthValidationResponse = await response.json();
+    return authValidationResponse;
+}
+
 wss.on("connection", (ws) => {
 	Logging.log("🟢 Established WebSocket connection.");
 
 	ws.on("message", async (message: string) => {
 		try {
 			const data = JSON.parse(message) as WebsocketMessage;
+			if (!data.content) {
+				return;
+			}
+
+			if (data.steamId && data.token) {
+				const state = await authenticate(data.steamId, data.token);
+				if (!state) {
+					Logging.log(`❌ Authentication failed!`)
+					return;
+				}
+			} else {
+				Logging.log(`❌ Authentication failed!`)
+				return;
+			}
+
 			Logging.log(`✉️ Received Message Type: ${data.type} | Content: ${data.content}`);
 
 			if (data.type && messageHandlers[data.type]) {
