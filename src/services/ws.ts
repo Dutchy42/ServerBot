@@ -173,6 +173,32 @@ const messageHandlers: Record<string, (data: WebsocketMessage) => Promise<any>> 
 				error: `Failed to give XP: ${error}`
 			};
 		}
+	},
+	"onJoin": async (data) => {
+		try {
+			if (!data.content || !data.steamId) {
+				return {
+					success: false,
+					content: `Malformed content received.`
+				};
+			}
+			// handle onJoin event
+		} catch (err){
+
+		}
+	},
+	"onLeave": async (data) => {
+		try {
+			if (!data.content || !data.steamId) {
+				return {
+					success: false,
+					content: `Malformed content received.`
+				};
+			}
+			// handle onLeave event
+		} catch (err){
+
+		}
 	}
 };
 
