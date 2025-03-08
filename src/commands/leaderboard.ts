@@ -67,7 +67,7 @@ export class LeaderboardCommand {
                         break;
                 }
 
-                usersText += `${emoji} \`\`#${rank.toString()}\`\` **${user.username}**: ${user.balance}$\n`;
+                usersText += `\`\`#${rank.toString()}\`\` **${user.username}**: ${user.balance}$${emoji} \n`;
                 rank++;
             });
 
@@ -122,7 +122,7 @@ export class LeaderboardCommand {
                 }
 
 
-                usersText += `${emoji} \`\`#${rank.toString()}\`\` **${user.username}**: Level ${user.level} (${user.xp} xp)\n`;
+                usersText += `\`\`#${rank.toString()}\`\` **${user.username}**: Level ${user.level} (${user.xp} xp)${emoji}\n`;
                 rank++;
             });
 
@@ -172,7 +172,7 @@ export class LeaderboardCommand {
                 }
 
 
-                usersText += `${emoji} \`\`#${rank.toString()}\`\` **${user.username}**: \`\`${user.streak}\`\` day(s)\n`;
+                usersText += `\`\`#${rank.toString()}\`\` **${user.username}**: \`\`${user.streak}\`\` day(s)${emoji}\n`;
                 rank++;
             });
 
