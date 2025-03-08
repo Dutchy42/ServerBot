@@ -126,10 +126,10 @@ export class ProfileCommand {
                             else if (rarity > 20) emoji = '🥉';
                             else emoji = ':gem:';  // For rarity <= 5%
 
-                            return `**${ub.badge.name}**\n
-                                    📋: ${ub.badge.description}\n
-                                    😎 **Rarity**: ${rarity}% ${emoji}
-                                    ⏳: <t:${awardedTimestamp}:D>
+                            return `**${ub.badge.name}**
+                                    📋Description: ${ub.badge.description}\n
+                                    💍Rarity: ${rarity}% ${emoji}
+                                    ⏳Awarded: <t:${awardedTimestamp}:D>
                                     ══════════════════`;})) 
                                     : "*No Badges*";
 
