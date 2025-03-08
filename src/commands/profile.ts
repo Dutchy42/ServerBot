@@ -121,10 +121,21 @@ export class ProfileCommand {
                             const rarity = parseFloat(((badgeUsersCount / totalUsers) * 100).toFixed(2));
 
                             let emoji = '';
-                            if (rarity > 75) emoji = '🥇';
-                            else if (rarity > 50) emoji = '🥈';
-                            else if (rarity > 20) emoji = '🥉';
-                            else emoji = ':gem:';  // For rarity <= 5%
+
+                            switch (true) {
+                                case rarity > 75:
+                                    emoji = '🥇';
+                                    break;
+                                case rarity > 50:
+                                    emoji = '🥈';
+                                    break;
+                                case rarity > 20:
+                                    emoji = '🥉';
+                                    break;
+                                default:
+                                    emoji = ':gem:';  // For rarity <= 20%
+                                    break;
+                            }
 
                             return `**${ub.badge.name}**
                                     📋Description: ${ub.badge.description}\n
