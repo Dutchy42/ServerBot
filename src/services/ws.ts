@@ -4,6 +4,7 @@ import Logging from "../logging";
 import Leveling from "../leveling";
 import { CodeStorage } from "../codeStorage";
 import { mergeUsers } from "../mergeUsers";
+import { PlayerList } from "../playerList";
 import { client } from "../index"
 const wss = new WebSocketServer({ port: 9090 });
 
@@ -175,51 +176,103 @@ const messageHandlers: Record<string, (data: WebsocketMessage) => Promise<any>> 
 		}
 	},
 	"onJoin": async (data) => {
-		try {
-			if (!data.content || !data.steamId) {
-				return {
-					success: false,
-					content: `Malformed content received.`
-				};
-			}
-			// handle onJoin event
-		} catch (err){
+    try {
+        if (!data.content || !data.steamId) {
+            return {
+                success: false,
+                content: `Malformed content received.`
+            };
+        }
 
-		}
-	},
-	"onLeave": async (data) => {
-		try {
-			if (!data.content || !data.steamId) {
-				return {
-					success: false,
-					content: `Malformed content received.`
-				};
-			}
-			// handle onLeave event
-		} catch (err){
+        const steamId = data.steamId;
+        const user = await prisma.user.findFirst({
+            where: {
+                accounts: {
+                    some: {
+                        platformId: steamId
+                    }
+                }
+            }
+        });
 
-		}
-	}
+        if (user) {
+            PlayerList.addPlayer(steamId, user);
+        } else {
+            return {
+                success: false,
+                content: "No user profile found!"
+            };
+        }
+    } catch (err) {
+        console.error(err);
+        return {
+            success: false,
+            content: "An error occurred while processing the join request."
+        };
+    }
+},
+
+"onLeave": async (data) => {
+    try {
+        if (!data.content || !data.steamId) {
+            return {
+                success: false,
+                content: `Malformed content received.`
+            };
+        }
+
+        const steamId = data.steamId;
+        const user = await prisma.user.findFirst({
+            where: {
+                accounts: {
+                    some: {
+                        platformId: steamId
+                    }
+                }
+            }
+        });
+
+        if (user) {
+            PlayerList.removePlayerBySteamID(steamId);
+            return {
+                success: true,
+                content: "Player successfully removed from the list."
+            };
+        } else {
+            return {
+                success: false,
+                content: "No user profile found to remove!"
+            };
+        }
+    } catch (err) {
+        console.error(err);
+        return {
+            success: false,
+            content: "An error occurred while processing the leave request."
+        };
+    }
+}
+
 };
 
 interface AuthValidationResponse {
-    steamId: number;
-    status: string;
+	steamId: number;
+	status: string;
 }
 
 async function authenticate(steamId: string, token: string): Promise<AuthValidationResponse | null> {
-    const content = {
-        steamId: steamId,
-        token: token
-    };
+	const content = {
+		steamId: steamId,
+		token: token
+	};
 
-    const response = await fetch('https://services.facepunch.com/sbox/auth/token', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(content)
-    });
+	const response = await fetch('https://services.facepunch.com/sbox/auth/token', {
+		method: 'POST',
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		body: JSON.stringify(content)
+	});
 
 	if (!response.ok) {
 		console.log('HTTP response wasnt OK');
@@ -227,7 +280,7 @@ async function authenticate(steamId: string, token: string): Promise<AuthValidat
 	}
 
 	const authValidationResponse: AuthValidationResponse = await response.json();
-    return authValidationResponse;
+	return authValidationResponse;
 }
 
 wss.on("connection", (ws) => {
