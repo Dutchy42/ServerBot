@@ -1,9 +1,9 @@
-import { 
-    ChatInputCommandInteraction, 
-    EmbedBuilder, 
-    MessageFlags, 
-    ActionRowBuilder, 
-    ButtonBuilder, 
+import {
+    ChatInputCommandInteraction,
+    EmbedBuilder,
+    MessageFlags,
+    ActionRowBuilder,
+    ButtonBuilder,
     ButtonStyle,
     GuildMember
 } from "discord.js";
@@ -30,15 +30,19 @@ export class ProfileCommand {
         try {
             const targetUser = interaction.options.getUser("user") || interaction.user;
             const member = interaction.guild?.members.cache.get(targetUser.id);
-            
+
             const account = await prisma.account.findUnique({
                 where: { platform_platformId: { platform: "DISCORD", platformId: targetUser.id } },
-                include: { 
+                include: {
                     user: {
                         include: {
                             badges: {
                                 include: {
-                                    badge: true
+                                    badge: {
+                                        include: {
+                                            users: true 
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -65,40 +69,40 @@ export class ProfileCommand {
                     const progressBarLength = 15;
                     const progress = Math.round((account.user.xp / xpForNextLevel) * progressBarLength);
                     const progressBar = "▰".repeat(progress) + "▱".repeat(progressBarLength - progress);
-                    
+
                     const multiplierInfo = getMultiplierInfo(member);
                     const multiplierDisplay = formatMultiplierDisplay(multiplierInfo);
 
-                    const createdDate = account.user.createdAt.toLocaleDateString('en-US', { 
-                        year: 'numeric', 
-                        month: 'short', 
-                        day: 'numeric' 
-                    });
+                    const createdTimestamp = Math.floor(account.user.createdAt.getTime() / 1000);
 
                     const embed = new EmbedBuilder()
                         .setColor("#0099ff")
                         .setTitle(`${account.user.username}'s Profile`)
-                        .setDescription(`Account created: ${createdDate}`)
-                        .addFields([
-                            {
-                                name: "Stats",
-                                value: [
-                                    `Level: ${account.user.level}`,
-                                    `Balance: ${account.user.balance}$`,
-                                    `XP: ${account.user.xp}/${xpForNextLevel}`,
-                                ].join('\n'),
-                                inline: true
-                            },
-                            {
-                                name: "XP Boost",
-                                value: multiplierDisplay,
-                                inline: true
-                            },
-                            {
-                                name: `Level Progress`,
-                                value: `${progressBar} ${Math.round((account.user.xp / xpForNextLevel) * 100)}%`,
-                                inline: false
-                            }
+                        .setDescription(`Account created: <t:${createdTimestamp}:D>`)
+                        .addFields([{
+                            name: "Stats",
+                            value: [
+                                `📈 **Level**: ${account.user.level}`,
+                                `💸 **Balance**: ${account.user.balance}$`,
+                                `⚡ **XP**: ${account.user.xp}/${xpForNextLevel}`,
+                            ].join('\n'),
+                            inline: true
+                        },
+                        {
+                            name: "XP Boost",
+                            value: multiplierDisplay,
+                            inline: true
+                        },
+                        {
+                            name: "Streak",
+                            value: `🔥 **Current Streak**: ${account.user.streak} day(s)`,
+                            inline: false
+                        },
+                        {
+                            name: `Level Progress`,
+                            value: `${progressBar} ${Math.round((account.user.xp / xpForNextLevel) * 100)}%`,
+                            inline: false
+                        },
                         ]);
 
                     if (member?.user.avatarURL()) {
@@ -107,15 +111,34 @@ export class ProfileCommand {
 
                     return embed;
                 },
-                () => {
-                    const badges = account.user.badges?.length 
-                        ? account.user.badges.map(ub => `• **${ub.badge.name}**\n  ${ub.badge.description}`).join("\n\n")
-                        : "*No Badges*";
+                async () => {
+                    const badges = account.user.badges?.length
+                        ? await Promise.all(account.user.badges.map(async ub => {
+                            const awardedTimestamp = Math.floor(new Date(ub.awardedAt).getTime() / 1000); 
+
+                            const totalUsers = await prisma.user.count();
+                            const badgeUsersCount = ub.badge.users.length;
+                            const rarity = parseFloat(((badgeUsersCount / totalUsers) * 100).toFixed(2));
+
+                            let emoji = '';
+                            if (rarity > 75) emoji = '🥇';
+                            else if (rarity > 50) emoji = '🥈';
+                            else if (rarity > 20) emoji = '🥉';
+                            else emoji = ':gem:';  // For rarity <= 5%
+
+                            return `**${ub.badge.name}**\n
+                                    📋: ${ub.badge.description}\n
+                                    😎 **Rarity**: ${rarity}% ${emoji}
+                                    ⏳: <t:${awardedTimestamp}:D>
+                                    ══════════════════`;})) 
+                                    : "*No Badges*";
+
+                    const badgesDescription = Array.isArray(badges) ? badges.join("\n\n") : badges;
 
                     const embed = new EmbedBuilder()
                         .setColor("#0099ff")
                         .setTitle(`${account.user.username}'s Badges`)
-                        .setDescription(badges);
+                        .setDescription(badgesDescription);
 
                     if (member?.user.avatarURL()) {
                         embed.setThumbnail(member.user.avatarURL() || '');
@@ -139,10 +162,10 @@ export class ProfileCommand {
             );
 
             await interaction.reply({
-                embeds: [pages[currentPage - 1]()],
+                embeds: [await pages[currentPage - 1]()],
                 components: [generateButtons(currentPage)]
             });
-            
+
             const message = await interaction.fetchReply();
             const collector = message.createMessageComponentCollector({ time: 60000 });
 
@@ -156,7 +179,7 @@ export class ProfileCommand {
                 if (i.customId === "next_page") currentPage++;
 
                 await i.update({
-                    embeds: [pages[currentPage - 1]()],
+                    embeds: [await pages[currentPage - 1]()],
                     components: [generateButtons(currentPage)]
                 });
             });
@@ -169,6 +192,7 @@ export class ProfileCommand {
         }
     }
 }
+
 
 interface MultiplierInfo {
     multiplier: number;
@@ -208,7 +232,7 @@ function formatMultiplierDisplay(info: MultiplierInfo): string {
         return "*No active XP boosts*";
     }
 
-    const boostLines = info.roles.map(role => 
+    const boostLines = info.roles.map(role =>
         `• ${role.name}: +${((role.multiplier - 1) * 100).toFixed(0)}%`
     );
 
