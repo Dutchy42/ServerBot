@@ -40,7 +40,7 @@ export class ProfileCommand {
                                 include: {
                                     badge: {
                                         include: {
-                                            users: true 
+                                            users: true
                                         }
                                     }
                                 }
@@ -114,7 +114,7 @@ export class ProfileCommand {
                 async () => {
                     const badges = account.user.badges?.length
                         ? await Promise.all(account.user.badges.map(async ub => {
-                            const awardedTimestamp = Math.floor(new Date(ub.awardedAt).getTime() / 1000); 
+                            const awardedTimestamp = Math.floor(new Date(ub.awardedAt).getTime() / 1000);
 
                             const totalUsers = await prisma.user.count();
                             const badgeUsersCount = ub.badge.users.length;
@@ -123,17 +123,20 @@ export class ProfileCommand {
                             let emoji = '';
 
                             switch (true) {
-                                case rarity > 75:
-                                    emoji = '🥇';
+                                case (rarity > 75):
+                                    emoji = '🥉';  // 76-100%
                                     break;
-                                case rarity > 50:
-                                    emoji = '🥈';
+                                case (rarity > 50):
+                                    emoji = '🥈';  // 51-75%
                                     break;
-                                case rarity > 20:
-                                    emoji = '🥉';
+                                case (rarity > 20):
+                                    emoji = '🥇';  // 21-50%
+                                    break;
+                                case (rarity > 5):
+                                    emoji = '🔥';  // 6-20%
                                     break;
                                 default:
-                                    emoji = ':gem:';  // For rarity <= 20%
+                                    emoji = ':gem:';  // 0-5%
                                     break;
                             }
 
@@ -141,8 +144,9 @@ export class ProfileCommand {
                                     📋Description: ${ub.badge.description}\n
                                     💍Rarity: ${rarity}% ${emoji}
                                     ⏳Awarded: <t:${awardedTimestamp}:D>
-                                    ══════════════════`;})) 
-                                    : "*No Badges*";
+                                    ══════════════════`;
+                        }))
+                        : "*No Badges*";
 
                     const badgesDescription = Array.isArray(badges) ? badges.join("\n\n") : badges;
 
