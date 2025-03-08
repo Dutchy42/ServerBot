@@ -6,7 +6,7 @@ import { CodeStorage } from "../codeStorage";
 import { mergeUsers } from "../mergeUsers";
 import { PlayerList } from "../playerList";
 import { client } from "../index"
-const wss = new WebSocketServer({ port: 9090 });
+const wss = new WebSocketServer({ port: 8080 });
 
 interface WebsocketMessage {
 	type: string;
