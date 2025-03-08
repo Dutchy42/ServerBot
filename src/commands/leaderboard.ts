@@ -239,16 +239,16 @@ export class LeaderboardCommand {
                 let emoji = '';
                 switch (true) {
                     case (rarity > 75):
-                        emoji = '🥉';  // 76-100%
+                        emoji = '';  // 76-100%
                         break;
                     case (rarity > 50):
-                        emoji = '🥈';  // 51-75%
+                        emoji = '🥉';  // 51-75%
                         break;
                     case (rarity > 20):
-                        emoji = '🥇';  // 21-50%
+                        emoji = '🥈';  // 21-50%
                         break;
                     case (rarity > 5):
-                        emoji = '🔥';  // 6-20%
+                        emoji = '🥇';  // 6-20%
                         break;
                     default:
                         emoji = ':gem:';  // 0-5%
