@@ -176,83 +176,81 @@ const messageHandlers: Record<string, (data: WebsocketMessage) => Promise<any>> 
 		}
 	},
 	"onJoin": async (data) => {
-    try {
-        if (!data.content || !data.steamId) {
-            return {
-                success: false,
-                content: `Malformed content received.`
-            };
-        }
+		try {
+			if (!data.content || !data.steamId) {
+				return {
+					success: false,
+					content: `Malformed content received.`
+				};
+			}
 
-        const steamId = data.steamId;
-        const user = await prisma.user.findFirst({
-            where: {
-                accounts: {
-                    some: {
-                        platformId: steamId
-                    }
-                }
-            }
-        });
+			const steamId = data.steamId;
+			const user = await prisma.user.findFirst({
+				where: {
+					accounts: {
+						some: {
+							platformId: steamId
+						}
+					}
+				}
+			});
 
-        if (user) {
-            PlayerList.addPlayer(steamId, user);
-        } else {
-            return {
-                success: false,
-                content: "No user profile found!"
-            };
-        }
-    } catch (err) {
-        console.error(err);
-        return {
-            success: false,
-            content: "An error occurred while processing the join request."
-        };
-    }
-},
+			if (user) {
+				PlayerList.addPlayer(steamId, user);
+			} else {
+				return {
+					success: false,
+					content: "No user profile found!"
+				};
+			}
+		} catch (err) {
+			console.error(err);
+			return {
+				success: false,
+				content: "An error occurred while processing the join request."
+			};
+		}
+	},
+	"onLeave": async (data) => {
+		try {
+			if (!data.content || !data.steamId) {
+				return {
+					success: false,
+					content: `Malformed content received.`
+				};
+			}
 
-"onLeave": async (data) => {
-    try {
-        if (!data.content || !data.steamId) {
-            return {
-                success: false,
-                content: `Malformed content received.`
-            };
-        }
+			const steamId = data.steamId;
+			const user = await prisma.user.findFirst({
+				where: {
+					accounts: {
+						some: {
+							platformId: steamId
+						}
+					}
+				}
+			});
 
-        const steamId = data.steamId;
-        const user = await prisma.user.findFirst({
-            where: {
-                accounts: {
-                    some: {
-                        platformId: steamId
-                    }
-                }
-            }
-        });
-
-        if (user) {
-            PlayerList.removePlayerBySteamID(steamId);
-            return {
-                success: true,
-                content: "Player successfully removed from the list."
-            };
-        } else {
-            return {
-                success: false,
-                content: "No user profile found to remove!"
-            };
-        }
-    } catch (err) {
-        console.error(err);
-        return {
-            success: false,
-            content: "An error occurred while processing the leave request."
-        };
-    }
-}
-
+			if (user) {
+				PlayerList.removePlayerBySteamID(steamId);
+				return {
+					success: true,
+					content: "Player successfully removed from the list."
+				};
+			} else {
+				return {
+					success: false,
+					content: "No user profile found to remove!"
+				};
+			}
+		} catch (err) {
+			console.error(err);
+			return {
+				success: false,
+				content: "An error occurred while processing the leave request."
+			};
+		}
+	}
 };
 
 interface AuthValidationResponse {
