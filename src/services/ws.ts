@@ -12,9 +12,10 @@ interface WebsocketMessage {
 	type: string;
 	steamId?: string;
 	token?: string;
-	content?: string;
+	content?: string | null;
 	correlationId?: string;
 }
+
 
 interface ResponseMessage extends WebsocketMessage {
 	success: boolean;
