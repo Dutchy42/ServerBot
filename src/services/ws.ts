@@ -16,7 +16,6 @@ interface WebsocketMessage {
 	correlationId?: string;
 }
 
-
 interface ResponseMessage extends WebsocketMessage {
 	success: boolean;
 	error?: string;
@@ -178,11 +177,8 @@ const messageHandlers: Record<string, (data: WebsocketMessage) => Promise<any>> 
 	},
 	"onJoin": async (data) => {
 		try {
-			if (!data.content || !data.steamId) {
-				return {
-					success: false,
-					content: `Malformed content received.`
-				};
+			if (!data.steamId) {
+				throw new Error(`No SteamID provided!`);
 			}
 
 			const steamId = data.steamId;
@@ -199,26 +195,16 @@ const messageHandlers: Record<string, (data: WebsocketMessage) => Promise<any>> 
 			if (user) {
 				PlayerList.addPlayer(steamId, user);
 			} else {
-				return {
-					success: false,
-					content: "No user profile found!"
-				};
+				throw new Error(`No user found!`);
 			}
 		} catch (err) {
 			console.error(err);
-			return {
-				success: false,
-				content: "An error occurred while processing the join request."
-			};
 		}
 	},
 	"onLeave": async (data) => {
 		try {
-			if (!data.content || !data.steamId) {
-				return {
-					success: false,
-					content: `Malformed content received.`
-				};
+			if (!data.steamId) {
+				throw new Error(`No SteamID provided!`);
 			}
 
 			const steamId = data.steamId;
@@ -234,22 +220,11 @@ const messageHandlers: Record<string, (data: WebsocketMessage) => Promise<any>> 
 
 			if (user) {
 				PlayerList.removePlayerBySteamID(steamId);
-				return {
-					success: true,
-					content: "Player successfully removed from the list."
-				};
 			} else {
-				return {
-					success: false,
-					content: "No user profile found to remove!"
-				};
+				throw new Error(`No user found!`);
 			}
 		} catch (err) {
 			console.error(err);
-			return {
-				success: false,
-				content: "An error occurred while processing the leave request."
-			};
 		}
 	}
 };
@@ -288,10 +263,6 @@ wss.on("connection", (ws) => {
 	ws.on("message", async (message: string) => {
 		try {
 			const data = JSON.parse(message) as WebsocketMessage;
-			if (!data.content) {
-				return;
-			}
-
 			if (data.steamId && data.token) {
 				const state = await authenticate(data.steamId, data.token);
 				if (!state) {
