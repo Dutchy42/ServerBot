@@ -86,33 +86,6 @@ client.on(Events.MessageCreate, async (message) => {
     }
 });
 
-client.on(Events.GuildMemberRemove, async (member) => {
-    try {
-        if (member.user.bot) return;
-
-        const account = await prisma.account.findUnique({ 
-            where: { 
-                platform_platformId: {
-                    platform: "DISCORD",
-                    platformId: member.user.id
-                }
-            },
-            include: { user: true }
-        });
-
-        if (account && account.user) {
-            await prisma.user.delete({
-                where: { id: account.user.id },
-            });
-
-            Logging.log(`Deleted user ${member.user.displayName} from database because they left the server!`);
-        }
-    }
-    catch (error) {
-        console.error('Error deleting user on leave:', error);
-    }
-});
-
 client.on(Events.InteractionCreate, async (interaction) => {
     if (!interaction.isChatInputCommand()) return;
 
